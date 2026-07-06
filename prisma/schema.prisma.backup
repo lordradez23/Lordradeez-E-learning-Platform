@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  email       String       @unique
+  avatarUrl   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  fullname    String       @db.VarChar(30)
+  password    String
+  role        Role         @default(USER)
+  university  String?
+  username    String       @db.VarChar(30)
+  googleId    String?      @unique
+  provider    String?
+  comments    Comment[]
+  enrollments Enrollment[]
+  reviews     Review[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  title     String
+  iconName  String?
+  createdAt DateTime @default(now())
+  slug      String   @unique
+  courses   Course[]
+  news      News[]
+}
+
+model Instructor {
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique
+  avatarUrl     String?
+  headline      String?
+  summary       String?
+  bio           String?
+  totalStudents Int      @default(0)
+  totalReviews  Int      @default(0)
+  websiteUrl    String?
+  facebookUrl   String?
+  twitterUrl    String?
+  linkedinUrl   String?
+  youtubeUrl    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  courses       Course[]
+}
+
+model Course {
+  id                Int              @id @default(autoincrement())
+  title             String
+  slug              String           @unique
+  description       String
+  imageUrl          String
+  categoryId        Int
+  instructorId      Int
+  translation       String
+  duration          String
+  lectures          Int
+  price             Float
+  ratingCount       Float            @default(0.0)
+  ratingTotal       Int              @default(0)
+  badgeBg           String
+  detailDescription String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  Chapters          Chapter[]
+  comments          Comment[]
+  category          Category         @relation(fields: [categoryId], references: [id])
+  instructor        Instructor       @relation(fields: [instructorId], references: [id])
+  learnings         CourseLearning[]
+  courseRating      CourseRating?
+  enrollments       Enrollment[]
+  reviews           Review[]
+}
+
+model News {
+  id          Int      @id @default(autoincrement())
+  title       String
+  imageUrl    String
+  categoryId  Int
+  description String
+  reads       Int      @default(0)
+  badgeBg     String?
+  createdAt   DateTime @default(now())
+  slug        String   @unique
+  category    Category @relation(fields: [categoryId], references: [id])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  rating    Float
+  review    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CourseLearning {
+  id          Int            @id @default(autoincrement())
+  courseId    Int
+  title       String
+  description String
+  createdAt   DateTime       @default(now())
+  course      Course         @relation(fields: [courseId], references: [id])
+  items       LearningItem[]
+}
+
+model LearningItem {
+  id         Int            @id @default(autoincrement())
+  learningId Int
+  item       String
+  createdAt  DateTime       @default(now())
+  learning   CourseLearning @relation(fields: [learningId], references: [id])
+}
+
+model Chapter {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  topic     String
+  duration  String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id])
+  details   Lesson[]
+}
+
+model Lesson {
+  id        Int      @id @default(autoincrement())
+  duration  String
+  createdAt DateTime @default(now())
+  chapterId Int
+  title     String
+  slug      String   @unique
+  video     String
+  chapter   Chapter  @relation(fields: [chapterId], references: [id])
+}
+
+model Enrollment {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  courseId        Int
+  progress        Int      @default(0)
+  finishedLessons Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  course          Course   @relation(fields: [courseId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model CourseRating {
+  id           Int      @id @default(autoincrement())
+  courseId     Int      @unique
+  average      Float    @default(0.0)
+  totalReviews Int      @default(0)
+  stars5       Int      @default(0) @map("stars_5")
+  stars4       Int      @default(0) @map("stars_4")
+  stars3       Int      @default(0) @map("stars_3")
+  stars2       Int      @default(0) @map("stars_2")
+  stars1       Int      @default(0) @map("stars_1")
+  updatedAt    DateTime @updatedAt
+  course       Course   @relation(fields: [courseId], references: [id])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    Int
+  courseId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)  // will delete the related relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+  INSTRUCTOR
+}
